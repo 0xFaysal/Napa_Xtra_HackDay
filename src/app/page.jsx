@@ -77,6 +77,7 @@ export default function NebulaPage() {
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
   const uploadedAudioRef = useRef(null);
 
   // ═══════════════════════════════════════════════════════════════
@@ -341,12 +342,18 @@ export default function NebulaPage() {
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFile(file);
-      // Create URL for audio visualization
+      // Create URL for preview
       if (file.type.startsWith('audio/') || file.name.endsWith('.wav')) {
         const url = URL.createObjectURL(file);
         setUploadedAudioUrl(url);
+        setUploadedImageUrl(null);
+      } else if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        setUploadedImageUrl(url);
+        setUploadedAudioUrl(null);
       } else {
         setUploadedAudioUrl(null);
+        setUploadedImageUrl(null);
       }
     }
   };
@@ -357,12 +364,18 @@ export default function NebulaPage() {
     const file = e.dataTransfer.files?.[0];
     if (file) {
       setUploadedFile(file);
-      // Create URL for audio visualization
+      // Create URL for preview
       if (file.type.startsWith('audio/') || file.name.endsWith('.wav')) {
         const url = URL.createObjectURL(file);
         setUploadedAudioUrl(url);
+        setUploadedImageUrl(null);
+      } else if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        setUploadedImageUrl(url);
+        setUploadedAudioUrl(null);
       } else {
         setUploadedAudioUrl(null);
+        setUploadedImageUrl(null);
       }
     }
   };
@@ -459,7 +472,16 @@ export default function NebulaPage() {
           <div className="medium-selection">
             <button
               className={`medium-btn ${medium === MEDIUMS.IMAGE ? 'active' : ''}`}
-              onClick={() => setMedium(MEDIUMS.IMAGE)}
+              onClick={() => {
+                setMedium(MEDIUMS.IMAGE);
+                // Clear uploaded file when switching medium in decrypt mode
+                if (mode === MODES.DECRYPT) {
+                  setUploadedFile(null);
+                  setUploadedAudioUrl(null);
+                  setUploadedImageUrl(null);
+                  setIsAudioPlaying(false);
+                }
+              }}
             >
               <div className="medium-icon image-icon">
                 <ImageIcon className="w-6 h-6" />
@@ -471,7 +493,16 @@ export default function NebulaPage() {
             </button>
             <button
               className={`medium-btn ${medium === MEDIUMS.AUDIO ? 'active' : ''}`}
-              onClick={() => setMedium(MEDIUMS.AUDIO)}
+              onClick={() => {
+                setMedium(MEDIUMS.AUDIO);
+                // Clear uploaded file when switching medium in decrypt mode
+                if (mode === MODES.DECRYPT) {
+                  setUploadedFile(null);
+                  setUploadedAudioUrl(null);
+                  setUploadedImageUrl(null);
+                  setIsAudioPlaying(false);
+                }
+              }}
             >
               <div className="medium-icon audio-icon">
                 <Music className="w-6 h-6" />
@@ -693,6 +724,23 @@ export default function NebulaPage() {
                   )}
                 </div>
               </div>
+
+              {/* Image Preview for uploaded file */}
+              {medium === MEDIUMS.IMAGE && uploadedFile && uploadedImageUrl && (
+                <div className="uploaded-image-preview">
+                  <label>
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Uploaded Image</span>
+                  </label>
+                  <div className="image-preview-container">
+                    <img 
+                      src={uploadedImageUrl} 
+                      alt="Uploaded for decryption" 
+                      className="preview-img"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Audio Preview for uploaded file */}
               {medium === MEDIUMS.AUDIO && uploadedFile && uploadedAudioUrl && (
