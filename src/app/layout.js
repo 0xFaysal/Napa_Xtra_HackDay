@@ -17,6 +17,12 @@ export const metadata = {
   title: "NEBULA | Multi-Media Steganography Tool",
   description: "Hide your secrets in plain sight. Encrypt messages into images and audio using advanced steganography techniques.",
   keywords: ["steganography", "encryption", "security", "privacy", "crypto"],
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }) {
