@@ -30,304 +30,450 @@ export function useImageStego() {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Generate a stunning artistic pattern based on the secret text
-   * Creates award-winning generative art with EMOTION-based colors
+   * Generate stunning artistic patterns with multiple styles
+   * FLOWER MANDALA, COSMIC BLOOM, AURORA GARDEN, CRYSTAL LOTUS
    */
   const generatePattern = useCallback((p5, width, height, secretText) => {
     const seed = generateVisualSeed(secretText);
     p5.randomSeed(seed);
     p5.noiseSeed(seed);
     
-    // ═══════════════════════════════════════════════════════════
-    // EMOTION DETECTION - Choose palette based on text content
-    // ═══════════════════════════════════════════════════════════
+    // Detect emotion for color palette
     const emotion = detectEmotion(secretText);
     const palette = getEmotionPalette(emotion);
     
-    console.log(`🎨 Detected emotion: ${emotion} → Using "${palette.name}" palette`);
+    // Choose art style based on seed (4 different beautiful styles)
+    const artStyles = ['flower_mandala', 'cosmic_bloom', 'aurora_garden', 'crystal_lotus'];
+    const artStyle = artStyles[seed % artStyles.length];
     
-    // Add some variation within the emotion palette
-    const shuffledColors = [...palette.colors].sort(() => p5.random() - 0.5);
-    palette.colors = shuffledColors;
+    console.log(`🎨 Emotion: ${emotion} | Style: ${artStyle} | Palette: ${palette.name}`);
     
+    // Shuffle palette for variety
+    const colors = [...palette.colors].sort(() => p5.random() - 0.5);
     const [bgR, bgG, bgB] = palette.bg;
     
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 0: Deep gradient background
-    // ═══════════════════════════════════════════════════════════
-    for (let y = 0; y < height; y++) {
-      const inter = y / height;
-      const r = p5.lerp(bgR, bgR * 0.3, inter);
-      const g = p5.lerp(bgG, bgG * 0.3, inter);
-      const b = p5.lerp(bgB * 1.5, bgB * 0.5, inter);
-      p5.stroke(r, g, b);
-      p5.line(0, y, width, y);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 1: Organic flowing aurora waves
-    // ═══════════════════════════════════════════════════════════
-    const numWaves = 5 + (seed % 4);
-    for (let w = 0; w < numWaves; w++) {
-      const baseY = height * (0.2 + (w / numWaves) * 0.6);
-      const color = palette.colors[w % palette.colors.length];
-      const waveOffset = (seed + w * 1000) * 0.01;
-      
-      for (let layer = 0; layer < 20; layer++) {
-        const alpha = p5.map(layer, 0, 20, 3, 0);
-        const spread = layer * 8;
-        
-        p5.noFill();
-        p5.stroke(color[0], color[1], color[2], alpha);
-        p5.strokeWeight(2);
-        
-        p5.beginShape();
-        for (let x = 0; x <= width; x += 4) {
-          const noiseVal = p5.noise(x * 0.003 + waveOffset, w * 0.5, layer * 0.1);
-          const y = baseY + Math.sin(x * 0.008 + w) * 50 + noiseVal * 100 - 50 + spread * (noiseVal - 0.5);
-          p5.vertex(x, y);
-        }
-        p5.endShape();
-      }
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 2: Particle constellation field
-    // ═══════════════════════════════════════════════════════════
-    const particles = [];
-    const numParticles = 150 + (seed % 100);
-    
-    for (let i = 0; i < numParticles; i++) {
-      particles.push({
-        x: p5.random(width),
-        y: p5.random(height),
-        size: p5.random(1, 4),
-        brightness: p5.random(150, 255),
-        color: palette.colors[Math.floor(p5.random(palette.colors.length))],
-      });
-    }
-    
-    // Draw connecting lines (constellation effect)
-    const connectionDistance = 60;
-    p5.strokeWeight(0.5);
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const d = p5.dist(particles[i].x, particles[i].y, particles[j].x, particles[j].y);
-        if (d < connectionDistance) {
-          const alpha = p5.map(d, 0, connectionDistance, 40, 0);
-          const col = particles[i].color;
-          p5.stroke(col[0], col[1], col[2], alpha);
-          p5.line(particles[i].x, particles[i].y, particles[j].x, particles[j].y);
-        }
-      }
-    }
-    
-    // Draw particles with glow
-    for (const particle of particles) {
-      // Outer glow
-      for (let r = particle.size * 4; r > 0; r -= 2) {
-        const alpha = p5.map(r, 0, particle.size * 4, particle.brightness * 0.5, 0);
-        p5.noStroke();
-        p5.fill(particle.color[0], particle.color[1], particle.color[2], alpha);
-        p5.ellipse(particle.x, particle.y, r, r);
-      }
-      // Core
-      p5.fill(255, 255, 255, particle.brightness);
-      p5.ellipse(particle.x, particle.y, particle.size, particle.size);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 3: Elegant geometric sacred geometry
-    // ═══════════════════════════════════════════════════════════
     const centerX = width / 2;
     const centerY = height / 2;
-    const numRings = 3 + (seed % 3);
     
-    for (let ring = 0; ring < numRings; ring++) {
-      const ringRadius = 80 + ring * 50;
-      const numPoints = 6 + ring * 2;
-      const rotation = (seed + ring * 30) * 0.02;
-      const color = palette.colors[(ring + 1) % palette.colors.length];
+    // ═══════════════════════════════════════════════════════════
+    // BACKGROUND - Radial gradient
+    // ═══════════════════════════════════════════════════════════
+    const bgGradient = p5.drawingContext.createRadialGradient(
+      centerX, centerY, 0,
+      centerX, centerY, width * 0.8
+    );
+    bgGradient.addColorStop(0, `rgb(${bgR * 2}, ${bgG * 2}, ${bgB * 2})`);
+    bgGradient.addColorStop(0.5, `rgb(${bgR}, ${bgG}, ${bgB})`);
+    bgGradient.addColorStop(1, `rgb(${bgR * 0.3}, ${bgG * 0.3}, ${bgB * 0.3})`);
+    p5.drawingContext.fillStyle = bgGradient;
+    p5.drawingContext.fillRect(0, 0, width, height);
+    
+    // ═══════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS FOR BEAUTIFUL SHAPES
+    // ═══════════════════════════════════════════════════════════
+    
+    // Draw a beautiful flower petal
+    const drawPetal = (x, y, petalLength, petalWidth, angle, color, alpha = 255) => {
+      p5.push();
+      p5.translate(x, y);
+      p5.rotate(angle);
       
-      // Draw ring glow
-      for (let g = 30; g > 0; g -= 5) {
-        p5.noFill();
-        p5.stroke(color[0], color[1], color[2], g * 0.3);
-        p5.strokeWeight(1 + g * 0.1);
-        p5.ellipse(centerX, centerY, ringRadius * 2 + g, ringRadius * 2 + g);
+      // Petal gradient
+      const gradient = p5.drawingContext.createLinearGradient(0, 0, petalLength, 0);
+      gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha / 255})`);
+      gradient.addColorStop(0.3, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha / 255})`);
+      gradient.addColorStop(1, `rgba(${color[0] * 0.6}, ${color[1] * 0.6}, ${color[2] * 0.6}, ${alpha / 255 * 0.5})`);
+      
+      p5.drawingContext.fillStyle = gradient;
+      p5.drawingContext.beginPath();
+      p5.drawingContext.moveTo(0, 0);
+      p5.drawingContext.bezierCurveTo(
+        petalLength * 0.3, -petalWidth * 0.5,
+        petalLength * 0.7, -petalWidth * 0.3,
+        petalLength, 0
+      );
+      p5.drawingContext.bezierCurveTo(
+        petalLength * 0.7, petalWidth * 0.3,
+        petalLength * 0.3, petalWidth * 0.5,
+        0, 0
+      );
+      p5.drawingContext.fill();
+      
+      // Petal edge glow
+      p5.drawingContext.strokeStyle = `rgba(255, 255, 255, ${alpha / 255 * 0.3})`;
+      p5.drawingContext.lineWidth = 1;
+      p5.drawingContext.stroke();
+      
+      p5.pop();
+    };
+    
+    // Draw a complete flower
+    const drawFlower = (x, y, size, numPetals, color, innerColor, rotation = 0) => {
+      // Outer glow
+      for (let g = size * 1.5; g > 0; g -= size * 0.1) {
+        const alpha = p5.map(g, 0, size * 1.5, 40, 0);
+        p5.noStroke();
+        p5.fill(color[0], color[1], color[2], alpha);
+        p5.ellipse(x, y, g * 2, g * 2);
       }
       
-      // Draw geometric shape
-      p5.stroke(color[0], color[1], color[2], 80);
-      p5.strokeWeight(1.5);
-      
-      const points = [];
-      for (let i = 0; i < numPoints; i++) {
-        const angle = (p5.TWO_PI / numPoints) * i + rotation;
-        points.push({
-          x: centerX + Math.cos(angle) * ringRadius,
-          y: centerY + Math.sin(angle) * ringRadius,
-        });
+      // Petals
+      for (let i = 0; i < numPetals; i++) {
+        const angle = (p5.TWO_PI / numPetals) * i + rotation;
+        const petalLength = size * (0.8 + p5.noise(i, seed * 0.01) * 0.4);
+        const petalWidth = size * 0.35;
+        drawPetal(x, y, petalLength, petalWidth, angle, color, 200);
       }
       
-      // Connect all points (creates beautiful star patterns)
-      for (let i = 0; i < points.length; i++) {
-        for (let j = i + 2; j < points.length; j++) {
-          if (j !== (i + points.length - 1) % points.length) {
-            const alpha = 30 + (ring * 10);
-            p5.stroke(color[0], color[1], color[2], alpha);
-            p5.line(points[i].x, points[i].y, points[j].x, points[j].y);
+      // Inner petals (smaller, different color)
+      for (let i = 0; i < numPetals; i++) {
+        const angle = (p5.TWO_PI / numPetals) * i + rotation + p5.PI / numPetals;
+        const petalLength = size * 0.5;
+        const petalWidth = size * 0.2;
+        drawPetal(x, y, petalLength, petalWidth, angle, innerColor, 180);
+      }
+      
+      // Center
+      const centerGradient = p5.drawingContext.createRadialGradient(x, y, 0, x, y, size * 0.25);
+      centerGradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+      centerGradient.addColorStop(0.5, `rgba(${innerColor[0]}, ${innerColor[1]}, ${innerColor[2]}, 1)`);
+      centerGradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`);
+      p5.drawingContext.fillStyle = centerGradient;
+      p5.drawingContext.beginPath();
+      p5.drawingContext.arc(x, y, size * 0.25, 0, p5.TWO_PI);
+      p5.drawingContext.fill();
+      
+      // Center sparkle
+      p5.fill(255, 255, 255, 200);
+      p5.noStroke();
+      p5.ellipse(x - size * 0.05, y - size * 0.05, size * 0.08, size * 0.08);
+    };
+    
+    // Draw a lotus/water lily
+    const drawLotus = (x, y, size, color) => {
+      const numLayers = 4;
+      for (let layer = numLayers - 1; layer >= 0; layer--) {
+        const layerSize = size * (0.4 + layer * 0.2);
+        const numPetals = 8 + layer * 4;
+        const rotation = layer * 0.15;
+        const layerColor = [
+          p5.lerp(255, color[0], layer / numLayers),
+          p5.lerp(255, color[1], layer / numLayers),
+          p5.lerp(255, color[2], layer / numLayers),
+        ];
+        
+        for (let i = 0; i < numPetals; i++) {
+          const angle = (p5.TWO_PI / numPetals) * i + rotation;
+          drawPetal(x, y, layerSize, layerSize * 0.3, angle, layerColor, 180 + layer * 20);
+        }
+      }
+      
+      // Golden center
+      const centerGrad = p5.drawingContext.createRadialGradient(x, y, 0, x, y, size * 0.15);
+      centerGrad.addColorStop(0, 'rgba(255, 250, 200, 1)');
+      centerGrad.addColorStop(1, 'rgba(255, 200, 100, 0.8)');
+      p5.drawingContext.fillStyle = centerGrad;
+      p5.drawingContext.beginPath();
+      p5.drawingContext.arc(x, y, size * 0.15, 0, p5.TWO_PI);
+      p5.drawingContext.fill();
+    };
+    
+    // ═══════════════════════════════════════════════════════════
+    // ART STYLE: FLOWER MANDALA
+    // ═══════════════════════════════════════════════════════════
+    if (artStyle === 'flower_mandala') {
+      // Background floral pattern
+      for (let i = 0; i < 30; i++) {
+        const x = p5.random(width);
+        const y = p5.random(height);
+        const size = 15 + p5.random(25);
+        const color = colors[Math.floor(p5.random(colors.length))];
+        const numPetals = 5 + Math.floor(p5.random(4));
+        
+        for (let p = 0; p < numPetals; p++) {
+          const angle = (p5.TWO_PI / numPetals) * p;
+          drawPetal(x, y, size, size * 0.3, angle, color, 40);
+        }
+      }
+      
+      // Mandala rings with flowers
+      const numRings = 4;
+      for (let ring = numRings - 1; ring >= 0; ring--) {
+        const ringRadius = 50 + ring * 60;
+        const numFlowers = 6 + ring * 4;
+        const flowerSize = 35 - ring * 5;
+        const color = colors[ring % colors.length];
+        const innerColor = colors[(ring + 2) % colors.length];
+        
+        for (let i = 0; i < numFlowers; i++) {
+          const angle = (p5.TWO_PI / numFlowers) * i + ring * 0.2;
+          const fx = centerX + Math.cos(angle) * ringRadius;
+          const fy = centerY + Math.sin(angle) * ringRadius;
+          drawFlower(fx, fy, flowerSize, 6 + ring, color, innerColor, angle);
+        }
+      }
+      
+      // Central lotus
+      drawLotus(centerX, centerY, 80, colors[0]);
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // ART STYLE: COSMIC BLOOM
+    // ═══════════════════════════════════════════════════════════
+    else if (artStyle === 'cosmic_bloom') {
+      // Nebula clouds
+      for (let i = 0; i < 500; i++) {
+        const angle = p5.random(p5.TWO_PI);
+        const dist = p5.random(width * 0.6);
+        const x = centerX + Math.cos(angle) * dist * (0.5 + p5.noise(i * 0.1) * 0.5);
+        const y = centerY + Math.sin(angle) * dist * (0.5 + p5.noise(i * 0.1, 100) * 0.5);
+        const size = 3 + p5.random(8);
+        const color = colors[Math.floor(p5.random(colors.length))];
+        const alpha = 10 + p5.random(30);
+        
+        p5.noStroke();
+        p5.fill(color[0], color[1], color[2], alpha);
+        p5.ellipse(x, y, size, size);
+      }
+      
+      // Spiral galaxy flowers
+      const numSpirals = 3;
+      for (let spiral = 0; spiral < numSpirals; spiral++) {
+        const spiralOffset = (p5.TWO_PI / numSpirals) * spiral;
+        const spiralColor = colors[spiral % colors.length];
+        
+        for (let i = 0; i < 40; i++) {
+          const t = i / 40;
+          const angle = spiralOffset + t * p5.TWO_PI * 2.5;
+          const dist = 30 + t * 180;
+          const x = centerX + Math.cos(angle) * dist;
+          const y = centerY + Math.sin(angle) * dist;
+          const size = 10 + (1 - t) * 25;
+          
+          // Small cosmic flowers
+          const numPetals = 5;
+          for (let p = 0; p < numPetals; p++) {
+            const petalAngle = (p5.TWO_PI / numPetals) * p + angle;
+            drawPetal(x, y, size, size * 0.35, petalAngle, spiralColor, 150 + t * 100);
+          }
+          
+          // Flower center glow
+          p5.noStroke();
+          for (let g = size * 0.4; g > 0; g -= 2) {
+            const a = p5.map(g, 0, size * 0.4, 200, 0);
+            p5.fill(255, 255, 255, a);
+            p5.ellipse(x, y, g, g);
           }
         }
       }
       
-      // Draw vertices with glow
-      for (const point of points) {
-        for (let s = 15; s > 0; s -= 3) {
-          p5.noStroke();
-          p5.fill(color[0], color[1], color[2], s * 2);
-          p5.ellipse(point.x, point.y, s, s);
+      // Central starburst flower
+      const starColor = colors[0];
+      for (let layer = 0; layer < 3; layer++) {
+        const layerPetals = 12 - layer * 2;
+        const layerSize = 60 - layer * 15;
+        for (let i = 0; i < layerPetals; i++) {
+          const angle = (p5.TWO_PI / layerPetals) * i + layer * 0.2;
+          drawPetal(centerX, centerY, layerSize, layerSize * 0.25, angle, starColor, 200);
         }
-        p5.fill(255);
-        p5.ellipse(point.x, point.y, 3, 3);
-      }
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 4: Central energy core
-    // ═══════════════════════════════════════════════════════════
-    const coreColor = palette.colors[0];
-    
-    // Outer energy rings
-    for (let i = 0; i < 8; i++) {
-      const radius = 30 + i * 15;
-      const alpha = p5.map(i, 0, 8, 50, 10);
-      const wobble = Math.sin(seed * 0.1 + i * 0.5) * 10;
-      
-      p5.noFill();
-      p5.stroke(coreColor[0], coreColor[1], coreColor[2], alpha);
-      p5.strokeWeight(2);
-      p5.ellipse(centerX, centerY, radius * 2 + wobble, radius * 2 - wobble * 0.5);
-    }
-    
-    // Core glow
-    for (let r = 60; r > 0; r -= 2) {
-      const alpha = p5.map(r, 0, 60, 80, 0);
-      const mixRatio = r / 60;
-      p5.noStroke();
-      p5.fill(
-        p5.lerp(255, coreColor[0], mixRatio),
-        p5.lerp(255, coreColor[1], mixRatio),
-        p5.lerp(255, coreColor[2], mixRatio),
-        alpha
-      );
-      p5.ellipse(centerX, centerY, r * 2, r * 2);
-    }
-    
-    // Bright center
-    p5.fill(255, 255, 255, 200);
-    p5.ellipse(centerX, centerY, 20, 20);
-    p5.fill(255, 255, 255);
-    p5.ellipse(centerX, centerY, 8, 8);
-    
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 5: Floating orbs with trails
-    // ═══════════════════════════════════════════════════════════
-    const numOrbs = 8 + (seed % 6);
-    for (let i = 0; i < numOrbs; i++) {
-      const angle = (p5.TWO_PI / numOrbs) * i + seed * 0.05;
-      const distance = 120 + p5.noise(i, seed * 0.01) * 100;
-      const orbX = centerX + Math.cos(angle) * distance;
-      const orbY = centerY + Math.sin(angle) * distance;
-      const color = palette.colors[i % palette.colors.length];
-      const orbSize = 8 + p5.random(8);
-      
-      // Trail
-      p5.noFill();
-      p5.strokeWeight(2);
-      for (let t = 0; t < 30; t++) {
-        const trailAngle = angle - t * 0.03;
-        const trailDist = distance - t * 1;
-        const tx = centerX + Math.cos(trailAngle) * trailDist;
-        const ty = centerY + Math.sin(trailAngle) * trailDist;
-        const alpha = p5.map(t, 0, 30, 60, 0);
-        p5.stroke(color[0], color[1], color[2], alpha);
-        p5.point(tx, ty);
       }
       
-      // Orb glow
-      for (let g = orbSize * 3; g > 0; g -= 2) {
-        const alpha = p5.map(g, 0, orbSize * 3, 50, 0);
-        p5.noStroke();
-        p5.fill(color[0], color[1], color[2], alpha);
-        p5.ellipse(orbX, orbY, g, g);
-      }
-      
-      // Orb core
-      p5.fill(255, 255, 255, 200);
-      p5.ellipse(orbX, orbY, orbSize * 0.5, orbSize * 0.5);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 6: Subtle light rays from center
-    // ═══════════════════════════════════════════════════════════
-    const numRays = 12 + (seed % 8);
-    for (let i = 0; i < numRays; i++) {
-      const angle = (p5.TWO_PI / numRays) * i + seed * 0.02;
-      const rayLength = 200 + p5.noise(i) * 150;
-      const color = palette.colors[i % palette.colors.length];
-      
-      const gradient = p5.drawingContext.createLinearGradient(
-        centerX, centerY,
-        centerX + Math.cos(angle) * rayLength,
-        centerY + Math.sin(angle) * rayLength
-      );
-      gradient.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.15)`);
-      gradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
-      
-      p5.drawingContext.strokeStyle = gradient;
-      p5.drawingContext.lineWidth = 20 + p5.random(20);
+      // Bright center
+      const centerBurst = p5.drawingContext.createRadialGradient(centerX, centerY, 0, centerX, centerY, 40);
+      centerBurst.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      centerBurst.addColorStop(0.3, `rgba(${starColor[0]}, ${starColor[1]}, ${starColor[2]}, 0.8)`);
+      centerBurst.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      p5.drawingContext.fillStyle = centerBurst;
       p5.drawingContext.beginPath();
-      p5.drawingContext.moveTo(centerX, centerY);
-      p5.drawingContext.lineTo(
-        centerX + Math.cos(angle) * rayLength,
-        centerY + Math.sin(angle) * rayLength
-      );
-      p5.drawingContext.stroke();
+      p5.drawingContext.arc(centerX, centerY, 40, 0, p5.TWO_PI);
+      p5.drawingContext.fill();
     }
     
     // ═══════════════════════════════════════════════════════════
-    // LAYER 7: Sparkle overlay
+    // ART STYLE: AURORA GARDEN
     // ═══════════════════════════════════════════════════════════
-    for (let i = 0; i < 100; i++) {
+    else if (artStyle === 'aurora_garden') {
+      // Flowing aurora waves
+      for (let wave = 0; wave < 8; wave++) {
+        const waveColor = colors[wave % colors.length];
+        const baseY = height * (0.3 + wave * 0.08);
+        
+        for (let layer = 0; layer < 15; layer++) {
+          const alpha = p5.map(layer, 0, 15, 20, 2);
+          p5.noFill();
+          p5.stroke(waveColor[0], waveColor[1], waveColor[2], alpha);
+          p5.strokeWeight(3);
+          
+          p5.beginShape();
+          for (let x = 0; x <= width; x += 5) {
+            const noiseVal = p5.noise(x * 0.005 + wave, wave * 0.3, layer * 0.1);
+            const y = baseY + Math.sin(x * 0.01 + wave * 0.5) * 40 + noiseVal * 80 - 40 + layer * 5;
+            p5.vertex(x, y);
+          }
+          p5.endShape();
+        }
+      }
+      
+      // Floating garden flowers
+      for (let i = 0; i < 25; i++) {
+        const x = p5.random(width * 0.1, width * 0.9);
+        const y = p5.random(height * 0.2, height * 0.8);
+        const size = 20 + p5.random(35);
+        const color = colors[Math.floor(p5.random(colors.length))];
+        const innerColor = colors[Math.floor(p5.random(colors.length))];
+        const numPetals = 5 + Math.floor(p5.random(4));
+        
+        drawFlower(x, y, size, numPetals, color, innerColor, p5.random(p5.TWO_PI));
+      }
+      
+      // Dreamy particles
+      for (let i = 0; i < 80; i++) {
+        const x = p5.random(width);
+        const y = p5.random(height);
+        const size = 2 + p5.random(4);
+        const color = colors[Math.floor(p5.random(colors.length))];
+        
+        for (let g = size * 3; g > 0; g -= 1) {
+          const alpha = p5.map(g, 0, size * 3, 100, 0);
+          p5.noStroke();
+          p5.fill(color[0], color[1], color[2], alpha);
+          p5.ellipse(x, y, g, g);
+        }
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // ART STYLE: CRYSTAL LOTUS
+    // ═══════════════════════════════════════════════════════════
+    else if (artStyle === 'crystal_lotus') {
+      // Crystalline background pattern
+      for (let i = 0; i < 60; i++) {
+        const x = p5.random(width);
+        const y = p5.random(height);
+        const size = 20 + p5.random(40);
+        const color = colors[Math.floor(p5.random(colors.length))];
+        const numSides = 6;
+        
+        // Crystal shape
+        p5.noFill();
+        p5.stroke(color[0], color[1], color[2], 30);
+        p5.strokeWeight(1);
+        p5.beginShape();
+        for (let j = 0; j < numSides; j++) {
+          const angle = (p5.TWO_PI / numSides) * j;
+          const px = x + Math.cos(angle) * size;
+          const py = y + Math.sin(angle) * size;
+          p5.vertex(px, py);
+        }
+        p5.endShape(p5.CLOSE);
+        
+        // Inner lines
+        for (let j = 0; j < numSides; j++) {
+          const angle = (p5.TWO_PI / numSides) * j;
+          p5.stroke(color[0], color[1], color[2], 15);
+          p5.line(x, y, x + Math.cos(angle) * size, y + Math.sin(angle) * size);
+        }
+      }
+      
+      // Geometric mandala rings
+      for (let ring = 0; ring < 5; ring++) {
+        const radius = 40 + ring * 45;
+        const numPoints = 12 + ring * 6;
+        const color = colors[ring % colors.length];
+        
+        // Ring glow
+        p5.noFill();
+        for (let g = 20; g > 0; g -= 4) {
+          p5.stroke(color[0], color[1], color[2], g * 1.5);
+          p5.strokeWeight(1);
+          p5.ellipse(centerX, centerY, radius * 2 + g, radius * 2 + g);
+        }
+        
+        // Points with flowers
+        for (let i = 0; i < numPoints; i++) {
+          const angle = (p5.TWO_PI / numPoints) * i + ring * 0.1;
+          const px = centerX + Math.cos(angle) * radius;
+          const py = centerY + Math.sin(angle) * radius;
+          
+          if (ring < 3) {
+            // Small flowers on inner rings
+            const flowerSize = 12 - ring * 2;
+            for (let p = 0; p < 5; p++) {
+              const petalAngle = (p5.TWO_PI / 5) * p + angle;
+              drawPetal(px, py, flowerSize, flowerSize * 0.4, petalAngle, color, 180);
+            }
+            p5.fill(255, 255, 200);
+            p5.noStroke();
+            p5.ellipse(px, py, 4, 4);
+          } else {
+            // Crystal points on outer rings
+            p5.fill(color[0], color[1], color[2], 150);
+            p5.noStroke();
+            p5.ellipse(px, py, 6, 6);
+          }
+        }
+        
+        // Connect points
+        p5.stroke(color[0], color[1], color[2], 40);
+        p5.strokeWeight(0.5);
+        for (let i = 0; i < numPoints; i++) {
+          const a1 = (p5.TWO_PI / numPoints) * i + ring * 0.1;
+          const a2 = (p5.TWO_PI / numPoints) * ((i + 2) % numPoints) + ring * 0.1;
+          p5.line(
+            centerX + Math.cos(a1) * radius,
+            centerY + Math.sin(a1) * radius,
+            centerX + Math.cos(a2) * radius,
+            centerY + Math.sin(a2) * radius
+          );
+        }
+      }
+      
+      // Central multi-layer lotus
+      drawLotus(centerX, centerY, 70, colors[0]);
+      
+      // Crown jewel at center
+      p5.noStroke();
+      const jewelGrad = p5.drawingContext.createRadialGradient(centerX, centerY, 0, centerX, centerY, 15);
+      jewelGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      jewelGrad.addColorStop(0.5, 'rgba(255, 255, 200, 0.8)');
+      jewelGrad.addColorStop(1, `rgba(${colors[0][0]}, ${colors[0][1]}, ${colors[0][2]}, 0)`);
+      p5.drawingContext.fillStyle = jewelGrad;
+      p5.drawingContext.beginPath();
+      p5.drawingContext.arc(centerX, centerY, 15, 0, p5.TWO_PI);
+      p5.drawingContext.fill();
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // FINAL TOUCHES: Sparkles & Vignette
+    // ═══════════════════════════════════════════════════════════
+    
+    // Sparkle overlay
+    for (let i = 0; i < 60; i++) {
       const x = p5.random(width);
       const y = p5.random(height);
-      const sparkleSize = p5.random(1, 3);
-      const brightness = p5.random(180, 255);
+      const size = p5.random(1, 2.5);
+      const brightness = p5.random(200, 255);
       
       // 4-point star sparkle
       p5.stroke(255, 255, 255, brightness);
-      p5.strokeWeight(1);
-      const len = sparkleSize * 3;
+      p5.strokeWeight(0.8);
+      const len = size * 4;
       p5.line(x - len, y, x + len, y);
       p5.line(x, y - len, x, y + len);
       
-      // Center dot
       p5.noStroke();
       p5.fill(255, 255, 255, brightness);
-      p5.ellipse(x, y, sparkleSize, sparkleSize);
+      p5.ellipse(x, y, size, size);
     }
     
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 8: Vignette effect
-    // ═══════════════════════════════════════════════════════════
+    // Soft vignette
     const vignette = p5.drawingContext.createRadialGradient(
       centerX, centerY, 0,
-      centerX, centerY, width * 0.7
+      centerX, centerY, width * 0.75
     );
     vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    vignette.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
-    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+    vignette.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
     
     p5.drawingContext.fillStyle = vignette;
     p5.drawingContext.fillRect(0, 0, width, height);
