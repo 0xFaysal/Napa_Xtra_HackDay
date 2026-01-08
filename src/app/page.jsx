@@ -208,14 +208,41 @@ export default function NebulaPage() {
   // ═══════════════════════════════════════════════════════════════
   // AUDIO PLAYER CONTROLS
   // ═══════════════════════════════════════════════════════════════
-  const toggleAudioPlay = () => {
+  const toggleAudioPlay = async () => {
     if (audioRef.current) {
       if (isAudioPlaying) {
         audioRef.current.pause();
+        setIsAudioPlaying(false);
       } else {
-        audioRef.current.play();
+        try {
+          await audioRef.current.play();
+          setIsAudioPlaying(true);
+        } catch (error) {
+          // Ignore AbortError when play is interrupted
+          if (error.name !== 'AbortError') {
+            console.error('Audio playback failed:', error);
+          }
+        }
       }
-      setIsAudioPlaying(!isAudioPlaying);
+    }
+  };
+
+  const toggleUploadedAudioPlay = async () => {
+    if (uploadedAudioRef.current) {
+      if (isAudioPlaying) {
+        uploadedAudioRef.current.pause();
+        setIsAudioPlaying(false);
+      } else {
+        try {
+          await uploadedAudioRef.current.play();
+          setIsAudioPlaying(true);
+        } catch (error) {
+          // Ignore AbortError when play is interrupted
+          if (error.name !== 'AbortError') {
+            console.error('Audio playback failed:', error);
+          }
+        }
+      }
     }
   };
 
@@ -678,16 +705,7 @@ export default function NebulaPage() {
                     />
                   </div>
                   <div className="audio-controls">
-                    <button className="play-btn" onClick={() => {
-                      if (uploadedAudioRef.current) {
-                        if (isAudioPlaying) {
-                          uploadedAudioRef.current.pause();
-                        } else {
-                          uploadedAudioRef.current.play();
-                        }
-                        setIsAudioPlaying(!isAudioPlaying);
-                      }
-                    }}>
+                    <button className="play-btn" onClick={toggleUploadedAudioPlay}>
                       {isAudioPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                     </button>
                     <div className="audio-progress">
@@ -707,6 +725,7 @@ export default function NebulaPage() {
                     onTimeUpdate={(e) => setAudioCurrentTime(e.target.currentTime)}
                     onLoadedMetadata={(e) => setAudioDuration(e.target.duration)}
                     onEnded={() => setIsAudioPlaying(false)}
+                    onError={(e) => console.error('Audio load error:', e.target.error)}
                     className="hidden"
                   />
                 </div>
