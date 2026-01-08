@@ -428,10 +428,18 @@ export function useAudioStego() {
         
         console.log('Binary data length:', fullBinary.length, 'bits');
 
-        // Step 3: Generate soundscape (needs enough samples for the data)
-        // Each sample = 1 bit, so we need at least fullBinary.length samples
-        const minDuration = Math.ceil(fullBinary.length / 44100) + 3; // +3 seconds buffer
-        const duration = Math.max(8, minDuration); // Minimum 8 seconds
+        // Step 3: Calculate dynamic duration based on data size
+        // Each sample = 1 bit, sample rate = 44100 Hz
+        // Min 20 seconds, Max 120 seconds (2 minutes)
+        const minRequiredDuration = Math.ceil(fullBinary.length / 44100) + 5; // +5 seconds buffer
+        
+        // Scale duration based on message length for a nicer experience
+        // Longer messages = longer, more immersive audio
+        const scaledDuration = 20 + (encryptedText.length / 10); // Base 20s + 1s per 10 chars
+        
+        const duration = Math.min(120, Math.max(20, Math.max(minRequiredDuration, scaledDuration)));
+        
+        console.log(`🎵 Dynamic audio duration: ${duration.toFixed(1)}s (data: ${encryptedText.length} chars)`);
         
         const samples = generateSoundscape(secretText, duration);
         
