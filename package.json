@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "nebula-steganography",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,13 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
+    "crypto-js": "^4.2.0",
     "gsap": "^3.14.2",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "p5": "^2.1.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-p5": "^1.4.1",
     "tone": "^15.1.22",
+    "wavefile": "^11.0.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
