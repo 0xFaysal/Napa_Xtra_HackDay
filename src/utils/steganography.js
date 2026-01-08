@@ -43,7 +43,20 @@ export function decryptText(encryptedText, password) {
   try {
     // Decrypt using AES
     const bytes = CryptoJS.AES.decrypt(encryptedText, password);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    
+    // Handle wrong password - toString throws "Malformed UTF-8 data" error
+    let decrypted;
+    try {
+      decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    } catch (utf8Error) {
+      // Wrong password produces garbage bytes that can't be decoded as UTF-8
+      return null;
+    }
+    
+    // Empty result also means wrong password
+    if (!decrypted) {
+      return null;
+    }
     
     // Verify the marker
     if (decrypted.startsWith('NEBULA::') && decrypted.endsWith('::NEBULA')) {
