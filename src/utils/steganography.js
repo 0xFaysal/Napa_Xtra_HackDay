@@ -215,3 +215,171 @@ export function seedToColors(seed) {
   
   return { r, g, b };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// EMOTION DETECTION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Emotion types
+ */
+export const EMOTIONS = {
+  WARM: 'warm',
+  COLD: 'cold',
+  NEUTRAL: 'neutral',
+};
+
+/**
+ * Word lists for emotion detection
+ */
+const WARM_WORDS = [
+  'love', 'hope', 'light', 'sun', 'dream', 'happy', 'joy', 'smile', 
+  'warm', 'heart', 'beautiful', 'bright', 'shine', 'glow', 'kind',
+  'friend', 'peace', 'calm', 'gentle', 'sweet', 'tender', 'embrace',
+  'sunshine', 'golden', 'bless', 'cherish', 'comfort', 'delight',
+  'faith', 'grace', 'harmony', 'inspire', 'laugh', 'magic', 'miracle',
+  'passion', 'radiant', 'serene', 'thankful', 'treasure', 'wonder',
+  'family', 'kiss', 'hug', 'wedding', 'baby', 'spring', 'summer',
+  'flower', 'bloom', 'sunrise', 'morning', 'paradise', 'angel',
+];
+
+const COLD_WORDS = [
+  'sad', 'dark', 'night', 'alone', 'cold', 'pain', 'fear', 'cry',
+  'lost', 'shadow', 'death', 'hate', 'anger', 'storm', 'thunder',
+  'rain', 'tears', 'broken', 'lonely', 'empty', 'sorrow', 'grief',
+  'despair', 'agony', 'bitter', 'bleak', 'doom', 'dread', 'fade',
+  'fall', 'frozen', 'grave', 'haunt', 'hurt', 'ice', 'melancholy',
+  'mourn', 'nightmare', 'obscure', 'pale', 'phantom', 'ruin', 'silent',
+  'suffer', 'tragic', 'void', 'weep', 'wither', 'wound', 'winter',
+  'midnight', 'fog', 'mist', 'ghost', 'scream', 'black', 'grey',
+];
+
+/**
+ * Detect the emotional tone of text
+ * @param {string} text - The text to analyze
+ * @returns {string} - EMOTIONS.WARM, EMOTIONS.COLD, or EMOTIONS.NEUTRAL
+ */
+export function detectEmotion(text) {
+  const lowerText = text.toLowerCase();
+  
+  let warmScore = 0;
+  let coldScore = 0;
+  
+  // Count warm words
+  for (const word of WARM_WORDS) {
+    if (lowerText.includes(word)) {
+      warmScore++;
+    }
+  }
+  
+  // Count cold words
+  for (const word of COLD_WORDS) {
+    if (lowerText.includes(word)) {
+      coldScore++;
+    }
+  }
+  
+  // Determine emotion
+  if (warmScore > coldScore && warmScore > 0) {
+    return EMOTIONS.WARM;
+  } else if (coldScore > warmScore && coldScore > 0) {
+    return EMOTIONS.COLD;
+  }
+  
+  return EMOTIONS.NEUTRAL;
+}
+
+/**
+ * Get color palettes based on emotion
+ * @param {string} emotion - The detected emotion
+ * @returns {Object} - Palette with background and colors
+ */
+export function getEmotionPalette(emotion) {
+  switch (emotion) {
+    case EMOTIONS.WARM:
+      return {
+        name: 'Warm & Hopeful',
+        bg: [25, 15, 10], // Warm dark
+        colors: [
+          [255, 200, 100],  // Gold
+          [255, 170, 150],  // Rose Gold
+          [255, 180, 200],  // Soft Pink
+          [255, 245, 220],  // Warm White
+          [255, 150, 80],   // Amber
+          [255, 120, 140],  // Coral
+        ],
+      };
+      
+    case EMOTIONS.COLD:
+      return {
+        name: 'Cold & Melancholic',
+        bg: [8, 12, 25], // Cold dark
+        colors: [
+          [30, 80, 180],    // Deep Blue
+          [0, 200, 255],    // Cyan
+          [140, 80, 200],   // Purple
+          [200, 220, 255],  // Cold White
+          [60, 100, 160],   // Steel Blue
+          [180, 100, 220],  // Lavender
+        ],
+      };
+      
+    case EMOTIONS.NEUTRAL:
+    default:
+      return {
+        name: 'Neutral & Elegant',
+        bg: [15, 15, 18], // Neutral dark
+        colors: [
+          [255, 255, 255],  // Pure White
+          [200, 200, 210],  // Silver
+          [140, 140, 150],  // Grey
+          [180, 180, 190],  // Light Grey
+          [100, 100, 110],  // Dark Grey
+          [220, 220, 230],  // Platinum
+        ],
+      };
+  }
+}
+
+/**
+ * Get music style based on emotion
+ * @param {string} emotion - The detected emotion
+ * @returns {Object} - Music parameters
+ */
+export function getEmotionMusicStyle(emotion) {
+  switch (emotion) {
+    case EMOTIONS.WARM:
+      return {
+        name: 'Relaxing & Soothing',
+        tempo: 65,           // Slow, peaceful
+        style: 'peaceful',
+        useGuitar: true,
+        usePiano: true,
+        noteLength: 'long',
+        dynamics: 'soft',
+      };
+      
+    case EMOTIONS.COLD:
+      return {
+        name: 'Intense & Powerful',
+        tempo: 120,          // Fast, energetic
+        style: 'rock',
+        useGuitar: true,
+        usePiano: false,
+        noteLength: 'short',
+        dynamics: 'loud',
+      };
+      
+    case EMOTIONS.NEUTRAL:
+    default:
+      return {
+        name: 'Balanced & Ambient',
+        tempo: 85,           // Moderate
+        style: 'ambient',
+        useGuitar: false,
+        usePiano: true,
+        noteLength: 'medium',
+        dynamics: 'medium',
+      };
+  }
+}

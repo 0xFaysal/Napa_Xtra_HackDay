@@ -13,6 +13,9 @@ import {
   extractDataFromBinary,
   generateVisualSeed,
   seedToColors,
+  detectEmotion,
+  getEmotionPalette,
+  EMOTIONS,
 } from '@/utils/steganography';
 
 /**
@@ -28,30 +31,25 @@ export function useImageStego() {
 
   /**
    * Generate a stunning artistic pattern based on the secret text
-   * Creates award-winning generative art that looks gallery-worthy
+   * Creates award-winning generative art with EMOTION-based colors
    */
   const generatePattern = useCallback((p5, width, height, secretText) => {
     const seed = generateVisualSeed(secretText);
     p5.randomSeed(seed);
     p5.noiseSeed(seed);
     
-    // Color palettes - all beautiful combinations
-    const palettes = [
-      // Aurora Borealis
-      { bg: [8, 12, 24], colors: [[0, 255, 180], [100, 200, 255], [180, 100, 255], [255, 100, 200]] },
-      // Sunset Dreams
-      { bg: [15, 8, 20], colors: [[255, 100, 80], [255, 150, 50], [255, 80, 150], [200, 50, 255]] },
-      // Ocean Depths
-      { bg: [5, 15, 25], colors: [[0, 200, 255], [0, 150, 200], [100, 255, 220], [50, 100, 255]] },
-      // Cosmic Purple
-      { bg: [12, 5, 20], colors: [[180, 80, 255], [255, 100, 180], [100, 150, 255], [220, 180, 255]] },
-      // Emerald Night
-      { bg: [5, 18, 15], colors: [[0, 255, 150], [100, 255, 180], [0, 200, 100], [150, 255, 200]] },
-      // Fire & Ice
-      { bg: [10, 10, 18], colors: [[255, 80, 50], [0, 200, 255], [255, 150, 80], [100, 220, 255]] },
-    ];
+    // ═══════════════════════════════════════════════════════════
+    // EMOTION DETECTION - Choose palette based on text content
+    // ═══════════════════════════════════════════════════════════
+    const emotion = detectEmotion(secretText);
+    const palette = getEmotionPalette(emotion);
     
-    const palette = palettes[seed % palettes.length];
+    console.log(`🎨 Detected emotion: ${emotion} → Using "${palette.name}" palette`);
+    
+    // Add some variation within the emotion palette
+    const shuffledColors = [...palette.colors].sort(() => p5.random() - 0.5);
+    palette.colors = shuffledColors;
+    
     const [bgR, bgG, bgB] = palette.bg;
     
     // ═══════════════════════════════════════════════════════════

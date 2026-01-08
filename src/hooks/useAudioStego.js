@@ -13,6 +13,9 @@ import {
   generateVisualSeed,
   stringToBinary,
   binaryToString,
+  detectEmotion,
+  getEmotionMusicStyle,
+  EMOTIONS,
 } from '@/utils/steganography';
 
 // End delimiter to mark the end of hidden data
@@ -25,23 +28,27 @@ const END_DELIMITER = '1111111111111110';
 export function useAudioStego() {
   
   // ═══════════════════════════════════════════════════════════════
-  // SYNTHETIC SOUND GENERATION
+  // EMOTION-BASED SOUND GENERATION
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Generate beautiful piano/guitar style ambient music
-   * Sounds like lo-fi study music or ambient piano pieces
-   * Returns 16-bit PCM samples directly
+   * Generate music based on emotional content of text
+   * WARM = Relaxing piano/guitar | COLD = Intense rock | NEUTRAL = Ambient
    */
   const generateSoundscape = useCallback((secretText, durationSeconds = 12) => {
     const sampleRate = 44100;
     const numSamples = sampleRate * durationSeconds;
     const samples = new Int16Array(numSamples);
     
-    // Use the secret text to seed variations
+    // Detect emotion and get music style
+    const emotion = detectEmotion(secretText);
+    const musicStyle = getEmotionMusicStyle(emotion);
+    
+    console.log(`🎵 Detected emotion: ${emotion} → Playing "${musicStyle.name}" style`);
+    
     const seed = generateVisualSeed(secretText);
     
-    // Seeded random for consistent output
+    // Seeded random
     let randomState = seed;
     const seededRandom = () => {
       randomState = (randomState * 1103515245 + 12345) & 0x7fffffff;
@@ -49,189 +56,304 @@ export function useAudioStego() {
     };
     
     // ═══════════════════════════════════════════════════════════
-    // MUSICAL SCALES & NOTES (in Hz)
+    // SCALES BASED ON EMOTION
     // ═══════════════════════════════════════════════════════════
     
-    // Beautiful piano/guitar friendly keys
     const scales = {
-      // C Major (happy, peaceful)
-      cMajor: [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25],
-      // A Minor (emotional, reflective)
-      aMinor: [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00],
-      // G Major (warm, uplifting)
-      gMajor: [196.00, 220.00, 246.94, 261.63, 293.66, 329.63, 369.99, 392.00],
-      // D Major (bright, joyful)
-      dMajor: [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33],
+      // WARM: Major keys (happy, peaceful)
+      warm: {
+        cMajor: [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25],
+        gMajor: [196.00, 220.00, 246.94, 261.63, 293.66, 329.63, 369.99, 392.00],
+        dMajor: [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33],
+      },
+      // COLD: Minor keys (dark, intense)
+      cold: {
+        aMinor: [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00],
+        eMinor: [164.81, 185.00, 196.00, 220.00, 246.94, 261.63, 293.66, 329.63],
+        dMinor: [146.83, 164.81, 174.61, 196.00, 220.00, 233.08, 261.63, 293.66],
+      },
+      // NEUTRAL: Mix
+      neutral: {
+        cMajor: [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25],
+        aMinor: [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00],
+      },
     };
     
-    // Select scale based on seed
-    const scaleNames = Object.keys(scales);
-    const selectedScale = scales[scaleNames[seed % scaleNames.length]];
+    const emotionScales = scales[emotion] || scales.neutral;
+    const scaleNames = Object.keys(emotionScales);
+    const selectedScale = emotionScales[scaleNames[seed % scaleNames.length]];
     
-    // Chord progressions (indices into scale)
-    const chordProgressions = [
-      [[0, 2, 4], [3, 5, 7], [4, 6, 1], [0, 2, 4]], // I - IV - V - I
-      [[0, 2, 4], [5, 0, 2], [3, 5, 7], [0, 2, 4]], // I - vi - IV - I
-      [[0, 2, 4], [4, 6, 1], [5, 0, 2], [3, 5, 7]], // I - V - vi - IV
-    ];
-    
-    const progression = chordProgressions[seed % chordProgressions.length];
-    const beatsPerChord = 8;
-    const bpm = 70 + (seed % 20); // 70-90 BPM (relaxed tempo)
+    // Tempo from music style
+    const bpm = musicStyle.tempo + (seed % 15);
     const beatDuration = 60 / bpm;
-    const chordDuration = beatsPerChord * beatDuration;
     
     // ═══════════════════════════════════════════════════════════
-    // PIANO NOTE SYNTHESIS
+    // INSTRUMENT SYNTHESIZERS
     // ═══════════════════════════════════════════════════════════
     
-    const pianoNote = (freq, t, noteStart, noteDuration) => {
+    // Warm Piano - soft, gentle
+    const warmPiano = (freq, t, noteStart, noteDuration) => {
       const noteT = t - noteStart;
-      if (noteT < 0 || noteT > noteDuration * 2) return 0;
+      if (noteT < 0 || noteT > noteDuration * 2.5) return 0;
       
-      // Piano ADSR envelope
-      const attack = 0.008;
-      const decay = 0.15;
-      const sustain = 0.4;
-      const release = noteDuration * 0.8;
+      const attack = 0.02;
+      const decay = 0.3;
+      const sustain = 0.5;
       
       let envelope;
       if (noteT < attack) {
         envelope = noteT / attack;
       } else if (noteT < attack + decay) {
         envelope = 1 - (1 - sustain) * ((noteT - attack) / decay);
-      } else if (noteT < noteDuration) {
-        envelope = sustain * Math.exp(-(noteT - attack - decay) * 1.5);
       } else {
-        envelope = sustain * Math.exp(-(noteDuration - attack - decay) * 1.5) * 
-                   Math.exp(-(noteT - noteDuration) / release);
+        envelope = sustain * Math.exp(-(noteT - attack - decay) * 0.8);
       }
       
-      // Piano harmonics (approximating real piano spectrum)
       let sound = 0;
-      sound += Math.sin(2 * Math.PI * freq * noteT) * 1.0;           // Fundamental
-      sound += Math.sin(2 * Math.PI * freq * 2 * noteT) * 0.5;       // 2nd harmonic
-      sound += Math.sin(2 * Math.PI * freq * 3 * noteT) * 0.25;      // 3rd
-      sound += Math.sin(2 * Math.PI * freq * 4 * noteT) * 0.15;      // 4th
-      sound += Math.sin(2 * Math.PI * freq * 5 * noteT) * 0.08;      // 5th
-      sound += Math.sin(2 * Math.PI * freq * 6 * noteT) * 0.04;      // 6th
-      
-      // Slight detuning for warmth
-      sound += Math.sin(2 * Math.PI * freq * 1.002 * noteT) * 0.3;
-      
-      // High frequency decay (piano characteristic)
-      const highDecay = Math.exp(-noteT * 3);
-      sound += Math.sin(2 * Math.PI * freq * 7 * noteT) * 0.03 * highDecay;
-      sound += Math.sin(2 * Math.PI * freq * 8 * noteT) * 0.02 * highDecay;
-      
-      return sound * envelope * 0.15;
-    };
-    
-    // ═══════════════════════════════════════════════════════════
-    // GUITAR STRING SYNTHESIS
-    // ═══════════════════════════════════════════════════════════
-    
-    const guitarNote = (freq, t, noteStart, noteDuration) => {
-      const noteT = t - noteStart;
-      if (noteT < 0 || noteT > noteDuration * 1.5) return 0;
-      
-      // Guitar pluck envelope
-      const attack = 0.003;
-      const decay = noteDuration * 0.7;
-      
-      let envelope;
-      if (noteT < attack) {
-        envelope = noteT / attack;
-      } else {
-        envelope = Math.exp(-(noteT - attack) / decay);
-      }
-      
-      // Karplus-Strong inspired (simplified)
-      let sound = 0;
-      const pluckBrightness = Math.exp(-noteT * 8); // Initial brightness fades
-      
       sound += Math.sin(2 * Math.PI * freq * noteT) * 1.0;
-      sound += Math.sin(2 * Math.PI * freq * 2 * noteT) * (0.6 * pluckBrightness + 0.2);
-      sound += Math.sin(2 * Math.PI * freq * 3 * noteT) * (0.4 * pluckBrightness + 0.1);
-      sound += Math.sin(2 * Math.PI * freq * 4 * noteT) * (0.3 * pluckBrightness);
-      sound += Math.sin(2 * Math.PI * freq * 5 * noteT) * (0.15 * pluckBrightness);
-      
-      // String vibration character
-      const vibrato = 1 + Math.sin(2 * Math.PI * 5 * noteT) * 0.003 * Math.min(1, noteT * 2);
-      sound += Math.sin(2 * Math.PI * freq * vibrato * noteT) * 0.2;
+      sound += Math.sin(2 * Math.PI * freq * 2 * noteT) * 0.4;
+      sound += Math.sin(2 * Math.PI * freq * 3 * noteT) * 0.2;
+      sound += Math.sin(2 * Math.PI * freq * 1.002 * noteT) * 0.3;
       
       return sound * envelope * 0.12;
     };
     
+    // Acoustic Guitar - warm strumming
+    const acousticGuitar = (freq, t, noteStart, noteDuration) => {
+      const noteT = t - noteStart;
+      if (noteT < 0 || noteT > noteDuration * 2) return 0;
+      
+      const attack = 0.005;
+      const decay = noteDuration * 0.8;
+      
+      let envelope = noteT < attack ? noteT / attack : Math.exp(-(noteT - attack) / decay);
+      
+      const brightness = Math.exp(-noteT * 6);
+      let sound = 0;
+      sound += Math.sin(2 * Math.PI * freq * noteT) * 1.0;
+      sound += Math.sin(2 * Math.PI * freq * 2 * noteT) * (0.5 * brightness + 0.15);
+      sound += Math.sin(2 * Math.PI * freq * 3 * noteT) * (0.3 * brightness + 0.08);
+      sound += Math.sin(2 * Math.PI * freq * 4 * noteT) * (0.2 * brightness);
+      
+      return sound * envelope * 0.1;
+    };
+    
+    // Rock/Distorted Guitar - aggressive
+    const rockGuitar = (freq, t, noteStart, noteDuration) => {
+      const noteT = t - noteStart;
+      if (noteT < 0 || noteT > noteDuration * 1.5) return 0;
+      
+      const attack = 0.002;
+      const sustain = 0.8;
+      
+      let envelope;
+      if (noteT < attack) {
+        envelope = noteT / attack;
+      } else if (noteT < noteDuration) {
+        envelope = sustain + (1 - sustain) * Math.exp(-(noteT - attack) * 3);
+      } else {
+        envelope = sustain * Math.exp(-(noteT - noteDuration) * 5);
+      }
+      
+      // Create distortion effect
+      let sound = 0;
+      const fundamental = Math.sin(2 * Math.PI * freq * noteT);
+      sound = Math.tanh(fundamental * 3) * 0.6; // Distortion
+      sound += Math.sin(2 * Math.PI * freq * 2 * noteT) * 0.4;
+      sound += Math.sin(2 * Math.PI * freq * 3 * noteT) * 0.3;
+      sound += Math.sin(2 * Math.PI * freq * 0.5 * noteT) * 0.5; // Power chord fifth
+      
+      // Add grit
+      const noise = (seededRandom() * 2 - 1) * 0.05;
+      sound += noise * envelope;
+      
+      return sound * envelope * 0.15;
+    };
+    
+    // Drums for rock
+    const kickDrum = (t, noteStart) => {
+      const noteT = t - noteStart;
+      if (noteT < 0 || noteT > 0.3) return 0;
+      
+      const envelope = Math.exp(-noteT * 20);
+      const pitch = 60 * Math.exp(-noteT * 30);
+      return Math.sin(2 * Math.PI * pitch * noteT) * envelope * 0.4;
+    };
+    
+    const snareDrum = (t, noteStart) => {
+      const noteT = t - noteStart;
+      if (noteT < 0 || noteT > 0.2) return 0;
+      
+      const envelope = Math.exp(-noteT * 15);
+      const noise = (seededRandom() * 2 - 1);
+      const tone = Math.sin(2 * Math.PI * 200 * noteT);
+      return (noise * 0.6 + tone * 0.4) * envelope * 0.25;
+    };
+    
+    const hihat = (t, noteStart) => {
+      const noteT = t - noteStart;
+      if (noteT < 0 || noteT > 0.08) return 0;
+      
+      const envelope = Math.exp(-noteT * 50);
+      const noise = (seededRandom() * 2 - 1);
+      return noise * envelope * 0.15;
+    };
+    
+    // Ambient Pad - for neutral
+    const ambientPad = (freq, t) => {
+      const envelope = Math.min(1, t * 0.2) * Math.min(1, (durationSeconds - t) * 0.3);
+      
+      let sound = 0;
+      sound += Math.sin(2 * Math.PI * freq * t) * 0.3;
+      sound += Math.sin(2 * Math.PI * freq * 1.002 * t) * 0.25;
+      sound += Math.sin(2 * Math.PI * freq * 2 * t) * 0.15;
+      sound += Math.sin(2 * Math.PI * freq * 0.5 * t) * 0.2;
+      
+      // Slow modulation
+      const mod = 0.7 + 0.3 * Math.sin(2 * Math.PI * 0.1 * t);
+      
+      return sound * envelope * mod * 0.08;
+    };
+    
     // ═══════════════════════════════════════════════════════════
-    // PRE-GENERATE NOTE SCHEDULE
+    // GENERATE NOTES BASED ON EMOTION
     // ═══════════════════════════════════════════════════════════
     
     const notes = [];
-    const useGuitar = (seed % 3) === 0; // 1/3 chance guitar, 2/3 piano
-    const useBoth = (seed % 5) === 0; // Sometimes use both!
     
-    // Generate arpeggiated pattern
-    for (let chordNum = 0; chordNum < Math.ceil(durationSeconds / chordDuration); chordNum++) {
-      const chordStartTime = chordNum * chordDuration;
-      const chordIndices = progression[chordNum % progression.length];
-      
-      // Arpeggio pattern variations
-      const patterns = [
-        [0, 1, 2, 1], // Up-down
-        [0, 1, 2, 2, 1, 0], // Up-down full
-        [0, 2, 1, 2], // Broken
-        [2, 1, 0, 1], // Down-up
+    if (emotion === EMOTIONS.WARM) {
+      // ══════════════════════════════════════════════════════
+      // WARM: Relaxing arpeggios, gentle piano/guitar
+      // ══════════════════════════════════════════════════════
+      const chordProgressions = [
+        [[0, 2, 4], [3, 5, 7], [4, 6, 1], [0, 2, 4]],
+        [[0, 2, 4], [5, 0, 2], [3, 5, 7], [4, 6, 1]],
       ];
-      const pattern = patterns[(seed + chordNum) % patterns.length];
+      const progression = chordProgressions[seed % chordProgressions.length];
+      const beatsPerChord = 8;
+      const chordDuration = beatsPerChord * beatDuration;
       
-      // Generate notes for this chord
-      for (let beat = 0; beat < beatsPerChord; beat++) {
-        const noteIndex = pattern[beat % pattern.length];
-        const scaleIndex = chordIndices[noteIndex % chordIndices.length];
-        const freq = selectedScale[scaleIndex % selectedScale.length];
+      for (let chordNum = 0; chordNum < Math.ceil(durationSeconds / chordDuration); chordNum++) {
+        const chordStartTime = chordNum * chordDuration;
+        const chordIndices = progression[chordNum % progression.length];
         
-        const noteStart = chordStartTime + beat * beatDuration;
-        const noteDuration = beatDuration * (1.5 + seededRandom() * 0.5);
+        const patterns = [[0, 1, 2, 1], [0, 2, 1, 2], [2, 1, 0, 1]];
+        const pattern = patterns[seed % patterns.length];
         
-        // Add some velocity variation
-        const velocity = 0.7 + seededRandom() * 0.3;
-        
-        // Occasionally add octave variation
-        const octaveShift = seededRandom() > 0.85 ? 2 : (seededRandom() > 0.7 ? 0.5 : 1);
-        
-        notes.push({
-          freq: freq * octaveShift,
-          start: noteStart,
-          duration: noteDuration,
-          velocity,
-          isGuitar: useGuitar || (useBoth && seededRandom() > 0.5),
-        });
-        
-        // Sometimes add bass note on beat 1 and 5
-        if (beat === 0 || beat === 4) {
+        for (let beat = 0; beat < beatsPerChord; beat++) {
+          const noteIndex = pattern[beat % pattern.length];
+          const scaleIndex = chordIndices[noteIndex % chordIndices.length];
+          const freq = selectedScale[scaleIndex % selectedScale.length];
+          
           notes.push({
-            freq: selectedScale[chordIndices[0]] * 0.5, // Bass octave
-            start: noteStart,
-            duration: beatDuration * 3,
-            velocity: 0.5,
-            isGuitar: false, // Bass always piano-like
+            freq: freq * (seededRandom() > 0.8 ? 2 : 1),
+            start: chordStartTime + beat * beatDuration,
+            duration: beatDuration * 2,
+            velocity: 0.6 + seededRandom() * 0.3,
+            type: seededRandom() > 0.5 ? 'piano' : 'guitar',
           });
+          
+          if (beat === 0) {
+            notes.push({
+              freq: selectedScale[0] * 0.5,
+              start: chordStartTime,
+              duration: chordDuration,
+              velocity: 0.4,
+              type: 'piano',
+            });
+          }
         }
       }
       
-      // Add occasional chord stabs
-      if (seededRandom() > 0.7) {
-        const stabTime = chordStartTime + beatDuration * (4 + Math.floor(seededRandom() * 2));
-        for (let i = 0; i < 3; i++) {
-          const scaleIdx = chordIndices[i];
-          notes.push({
-            freq: selectedScale[scaleIdx] * (seededRandom() > 0.5 ? 1 : 2),
-            start: stabTime,
-            duration: beatDuration * 2,
-            velocity: 0.4,
-            isGuitar: useGuitar,
-          });
+    } else if (emotion === EMOTIONS.COLD) {
+      // ══════════════════════════════════════════════════════
+      // COLD: Rock/Metal style - power chords, drums
+      // ══════════════════════════════════════════════════════
+      const powerChords = [
+        [0, 4], // Root + Fifth (power chord)
+        [3, 0],
+        [5, 2],
+        [4, 0],
+      ];
+      
+      const beatsPerBar = 4;
+      const barDuration = beatsPerBar * beatDuration;
+      
+      for (let bar = 0; bar < Math.ceil(durationSeconds / barDuration); bar++) {
+        const barStart = bar * barDuration;
+        const chord = powerChords[bar % powerChords.length];
+        
+        for (let beat = 0; beat < beatsPerBar; beat++) {
+          const beatStart = barStart + beat * beatDuration;
+          
+          // Rock guitar on each beat with syncopation
+          if (beat === 0 || beat === 2 || (seededRandom() > 0.6)) {
+            for (const noteIdx of chord) {
+              const freq = selectedScale[noteIdx % selectedScale.length];
+              notes.push({
+                freq: freq * 0.5, // Lower octave for heaviness
+                start: beatStart,
+                duration: beatDuration * 0.8,
+                velocity: 0.8 + seededRandom() * 0.2,
+                type: 'rock',
+              });
+            }
+          }
+          
+          // Drums
+          notes.push({ start: beatStart, type: 'kick' });
+          if (beat === 1 || beat === 3) {
+            notes.push({ start: beatStart, type: 'snare' });
+          }
+          notes.push({ start: beatStart, type: 'hihat' });
+          if (seededRandom() > 0.5) {
+            notes.push({ start: beatStart + beatDuration * 0.5, type: 'hihat' });
+          }
+        }
+        
+        // Occasional fill
+        if (bar % 4 === 3) {
+          for (let i = 0; i < 4; i++) {
+            notes.push({ 
+              start: barStart + barDuration - beatDuration + i * beatDuration * 0.25, 
+              type: 'snare' 
+            });
+          }
+        }
+      }
+      
+    } else {
+      // ══════════════════════════════════════════════════════
+      // NEUTRAL: Ambient pad with gentle piano
+      // ══════════════════════════════════════════════════════
+      const beatsPerChord = 16;
+      const chordDuration = beatsPerChord * beatDuration;
+      const chords = [[0, 2, 4], [3, 5, 7], [5, 0, 2], [4, 6, 1]];
+      
+      for (let chordNum = 0; chordNum < Math.ceil(durationSeconds / chordDuration); chordNum++) {
+        const chordStart = chordNum * chordDuration;
+        const chord = chords[chordNum % chords.length];
+        
+        // Ambient pad drone
+        notes.push({
+          freq: selectedScale[chord[0]],
+          start: chordStart,
+          duration: chordDuration,
+          type: 'pad',
+        });
+        
+        // Sparse piano notes
+        for (let i = 0; i < 4; i++) {
+          if (seededRandom() > 0.3) {
+            const noteIdx = chord[Math.floor(seededRandom() * chord.length)];
+            notes.push({
+              freq: selectedScale[noteIdx] * (seededRandom() > 0.5 ? 2 : 1),
+              start: chordStart + i * (chordDuration / 4) + seededRandom() * beatDuration,
+              duration: beatDuration * 3,
+              velocity: 0.4 + seededRandom() * 0.2,
+              type: 'piano',
+            });
+          }
         }
       }
     }
@@ -244,43 +366,37 @@ export function useAudioStego() {
       const t = i / sampleRate;
       let sample = 0;
       
-      // Render all active notes
+      // Render notes
       for (const note of notes) {
-        if (t >= note.start - 0.01 && t <= note.start + note.duration * 2) {
-          if (note.isGuitar) {
-            sample += guitarNote(note.freq, t, note.start, note.duration) * note.velocity;
-          } else {
-            sample += pianoNote(note.freq, t, note.start, note.duration) * note.velocity;
-          }
+        if (note.type === 'piano' && t >= note.start - 0.01 && t <= note.start + note.duration * 3) {
+          sample += warmPiano(note.freq, t, note.start, note.duration) * (note.velocity || 1);
+        } else if (note.type === 'guitar' && t >= note.start - 0.01 && t <= note.start + note.duration * 2) {
+          sample += acousticGuitar(note.freq, t, note.start, note.duration) * (note.velocity || 1);
+        } else if (note.type === 'rock' && t >= note.start - 0.01 && t <= note.start + note.duration * 2) {
+          sample += rockGuitar(note.freq, t, note.start, note.duration) * (note.velocity || 1);
+        } else if (note.type === 'kick') {
+          sample += kickDrum(t, note.start);
+        } else if (note.type === 'snare') {
+          sample += snareDrum(t, note.start);
+        } else if (note.type === 'hihat') {
+          sample += hihat(t, note.start);
+        } else if (note.type === 'pad') {
+          sample += ambientPad(note.freq, t);
         }
       }
       
-      // ═══════════════════════════════════════════════════════
-      // SUBTLE AMBIENT PAD (background warmth)
-      // ═══════════════════════════════════════════════════════
-      const padVolume = 0.03;
-      const padFreq = selectedScale[0] * 0.5; // Root bass
-      const padEnv = Math.min(1, t * 0.3) * Math.min(1, (durationSeconds - t) * 0.5);
-      sample += Math.sin(2 * Math.PI * padFreq * t) * padVolume * padEnv;
-      sample += Math.sin(2 * Math.PI * padFreq * 1.5 * t) * padVolume * 0.5 * padEnv;
-      
-      // ═══════════════════════════════════════════════════════
-      // MASTER PROCESSING
-      // ═══════════════════════════════════════════════════════
-      
-      // Soft reverb simulation (simple delay mix)
-      const reverbSample = i > sampleRate * 0.1 ? samples[i - Math.floor(sampleRate * 0.1)] / 32767 : 0;
-      sample += reverbSample * 0.15;
-      
-      // Master fade in/out
-      const masterFadeIn = Math.min(1, t * 0.8);
-      const masterFadeOut = Math.min(1, (durationSeconds - t) * 1.2);
+      // Master processing
+      const masterFadeIn = Math.min(1, t * 0.5);
+      const masterFadeOut = Math.min(1, (durationSeconds - t) * 1);
       sample *= masterFadeIn * masterFadeOut;
       
-      // Soft limiting
-      sample = Math.tanh(sample * 1.5) * 0.85;
+      // Different limiting based on style
+      if (emotion === EMOTIONS.COLD) {
+        sample = Math.tanh(sample * 2) * 0.9; // Harder compression for rock
+      } else {
+        sample = Math.tanh(sample * 1.3) * 0.85;
+      }
       
-      // Convert to 16-bit
       samples[i] = Math.round(sample * 32767);
     }
     
